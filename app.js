@@ -109,6 +109,49 @@ function requestWakeLock() {
 function releaseWakeLock() {
   try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
 }
+
+/* ---------- 到时提醒：响铃 + 震动 + 系统通知 ---------- */
+var audioCtx = null;
+function ensureAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+}
+function beep(times) {
+  if (!audioCtx) return;
+  try {
+    for (var i = 0; i < times; i++) {
+      (function (i) {
+        var t0 = audioCtx.currentTime + i * 0.35;
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+        osc.start(t0);
+        osc.stop(t0 + 0.3);
+      })(i);
+    }
+  } catch (e) {}
+}
+function notifyEnd() {
+  try { if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
+  beep(3);
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      var n = new Notification('时间质押 · 时间到', {
+        body: '「' + active.goal + '」质押时间到了，该结算收获了！',
+        icon: 'icon.svg',
+        tag: 'stake-end'
+      });
+      n.onclick = function () { try { window.focus(); } catch (e) {} };
+    }
+  } catch (e) {}
+}
 document.addEventListener('visibilitychange', function () {
   if (!document.hidden && active && !active.pauseStart) requestWakeLock();
 });
@@ -228,6 +271,13 @@ $('#start-btn').addEventListener('click', function () {
     interruptions: 0, notified: false
   };
   saveActive();
+  // 开始质押时顺便申请通知权限（必须在用户手势里触发才有效）
+  try {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  } catch (e) {}
+  ensureAudio();
   renderStake();
   requestWakeLock();
   toast('质押开始，专心干吧 💪');
@@ -267,8 +317,8 @@ function tick() {
     if (!active.notified && el >= active.plannedMinutes * 60000) {
       active.notified = true;
       saveActive();
-      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-      openSettle();
+      notifyEnd();
+      if ($('#recovery-sheet').classList.contains('hidden')) openSettle();
     }
   } else {
     sub.textContent = '不限时 · 已质押 ' + fmtMinutes(el / 60000);
