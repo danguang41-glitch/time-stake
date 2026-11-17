@@ -154,6 +154,9 @@ textarea{resize:none;min-height:64px}
 .wall-item p{margin:0;font-size:15px}
 .wall-item small{color:var(--ink2);font-size:12px}
 
+/* 进行中横幅：质押进行中时，在账本/统计页醒目提示，点一下回到计时页 */
+#active-banner{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));z-index:45;background:var(--accent);color:#fff;border:none;border-radius:99px;padding:11px 18px;font-size:14px;font-weight:600;box-shadow:0 6px 18px rgba(200,64,42,.4);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+
 /* tab bar */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--tabbar);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav .inner{max-width:560px;margin:0 auto;display:flex}
@@ -380,6 +383,8 @@ nav button .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
     </div>
   </div>
 </div>
+
+<button id="active-banner" class="hidden"></button>
 
 <nav><div class="inner">
   <button data-view="stake" class="on"><span class="ico">⏳</span>质押<span class="dot hidden" id="active-dot"></span></button>

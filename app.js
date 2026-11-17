@@ -79,6 +79,7 @@ var selCat = '学习';
 var selDur = 25; // 分钟；0 = 不限时；'custom' = 自定义
 var ledgerCat = '全部';
 var ledgerDate = '';
+var currentView = 'stake';
 var settleAchieved = 'done';
 var settleFocus = null;
 var detailId = null;
@@ -136,7 +137,16 @@ function calcRate() {
 }
 
 /* ---------- 视图切换 ---------- */
+function updateBanner() {
+  var b = $('#active-banner');
+  if (!active || currentView === 'stake') { b.classList.add('hidden'); return; }
+  b.textContent = '⏳ 质押中 ' + fmtClock(elapsedMs(active)) + ' · ' + active.category + ' · 点我回到计时';
+  b.classList.remove('hidden');
+}
+$('#active-banner').addEventListener('click', function () { switchView('stake'); });
+
 function switchView(name) {
+  currentView = name;
   ['stake', 'ledger', 'stats'].forEach(function (v) {
     $('#view-' + v).classList.toggle('hidden', v !== name);
   });
@@ -145,6 +155,7 @@ function switchView(name) {
   });
   if (name === 'ledger') renderLedger();
   if (name === 'stats') renderStats();
+  updateBanner();
   window.scrollTo(0, 0);
 }
 $all('nav button').forEach(function (b) {
@@ -228,6 +239,7 @@ function renderStake() {
   $('#stake-form').classList.toggle('hidden', hasActive);
   $('#stake-timer').classList.toggle('hidden', !hasActive);
   $('#active-dot').classList.toggle('hidden', !hasActive);
+  updateBanner();
   if (hasActive) {
     $('#timer-goal').textContent = '🎯 ' + active.goal;
     tick();
@@ -266,6 +278,7 @@ function tick() {
   $('#meta-elapsed').textContent = fmtMinutes(el / 60000);
   $('#meta-interrupt').textContent = active.interruptions + ' 次';
   $('#meta-paused').textContent = fmtMinutes(pausedMs(active) / 60000);
+  updateBanner();
 }
 setInterval(tick, 500);
 
@@ -442,6 +455,7 @@ function renderLedger() {
       '<div class="gain">💎 ' + esc(r.gain) + '</div>' +
       '<div class="meta"><span class="cat-tag">' + esc(r.category) + '</span>' +
       '<span>' + fmtDateTime(r.endTime) + '</span>' +
+      (r.plannedMinutes > 0 ? '<span>' + (r.actualMinutes >= r.plannedMinutes ? '✓ 履约' : '未履约') + '</span>' : '<span>不限时</span>') +
       '<span>' + ACHIEVED_LABEL[r.achieved] + '</span>' +
       '<span>' + stars + '</span>' +
       (r.interruptions ? '<span>被打断 ' + r.interruptions + ' 次</span>' : '') +
