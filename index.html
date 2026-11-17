@@ -165,6 +165,11 @@ nav button .ico{font-size:22px;line-height:1}
 nav button.on{color:var(--accent);font-weight:700}
 nav button .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
 
+/* 通用确认弹窗：居中显示，替代原生 confirm */
+.sheet-back.center{align-items:center;justify-content:center}
+.confirm-box{background:var(--bg);width:calc(100% - 48px);max-width:400px;border-radius:18px;padding:22px 20px 18px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:up .2s ease}
+.confirm-box p{margin:4px 0 18px;font-size:16px;line-height:1.6}
+
 /* toast */
 #toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:#26221d;color:#fff;padding:11px 18px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:86vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%)}
@@ -380,6 +385,17 @@ nav button .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
     </div>
     <div style="margin-top:10px">
       <button class="btn btn-danger-ghost" id="recovery-abandon-btn">放弃这次质押</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 通用确认弹窗 ============ -->
+<div id="confirm-sheet" class="sheet-back center hidden">
+  <div class="confirm-box">
+    <p id="confirm-msg"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="confirm-cancel-btn">取消</button>
+      <button class="btn btn-primary" id="confirm-ok-btn">确定</button>
     </div>
   </div>
 </div>

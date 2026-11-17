@@ -60,6 +60,25 @@ function toast(msg) {
   clearTimeout(t._timer);
   t._timer = setTimeout(function () { t.classList.remove('show'); }, 2600);
 }
+/* ---------- 通用确认弹窗（替代原生 confirm，避免在某些浏览器里弹不出） ---------- */
+var confirmResolve = null;
+function askConfirm(msg, okText) {
+  return new Promise(function (resolve) {
+    confirmResolve = resolve;
+    $('#confirm-msg').textContent = msg;
+    $('#confirm-ok-btn').textContent = okText || '确定';
+    $('#confirm-sheet').classList.remove('hidden');
+  });
+}
+$('#confirm-cancel-btn').addEventListener('click', function () {
+  $('#confirm-sheet').classList.add('hidden');
+  if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+$('#confirm-ok-btn').addEventListener('click', function () {
+  $('#confirm-sheet').classList.add('hidden');
+  if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+});
+
 function loadJSON(key, fallback) {
   try {
     var v = JSON.parse(localStorage.getItem(key));
@@ -354,8 +373,9 @@ $('#interrupt-btn').addEventListener('click', function () {
 });
 $('#abandon-btn').addEventListener('click', function () {
   if (!active) return;
-  if (!window.confirm('确定放弃这次质押吗？它不会记入账本，但会记一次放弃。')) return;
-  abandonActive();
+  askConfirm('确定放弃这次质押吗？它不会记入账本，但会记一次放弃。', '放弃').then(function (ok) {
+    if (ok) abandonActive();
+  });
 });
 function abandonActive() {
   var key = dateKey(Date.now());
@@ -452,10 +472,19 @@ $('#settle-cancel-btn').addEventListener('click', function () {
 });
 $('#settle-confirm-btn').addEventListener('click', function () {
   if (!active) return;
+  if (!$('#gain-input').value.trim()) return;
+  var el = elapsedMs(active);
+  if (el < 60000) {
+    askConfirm('这次不到 1 分钟，确认结算吗？', '确认结算').then(function (ok) { if (ok) doSettle(); });
+    return;
+  }
+  doSettle();
+});
+function doSettle() {
+  if (!active) return;
   var gain = $('#gain-input').value.trim();
   if (!gain) return;
   var el = elapsedMs(active);
-  if (el < 60000 && !window.confirm('这次不到 1 分钟，确认结算吗？')) return;
   records.unshift({
     id: active.id, category: active.category, goal: active.goal,
     plannedMinutes: active.plannedMinutes, startTime: active.startTime,
@@ -474,7 +503,7 @@ $('#settle-confirm-btn').addEventListener('click', function () {
   renderStreakPill();
   toast('已记入账本 📒');
   switchView('ledger');
-});
+}
 
 /* ---------- 账本 ---------- */
 function ledgerCategories() {
@@ -578,14 +607,16 @@ $('#detail-save-btn').addEventListener('click', function () {
   toast('已保存');
 });
 $('#detail-delete-btn').addEventListener('click', function () {
-  if (!window.confirm('确定删除这条记录吗？')) return;
-  records = records.filter(function (r) { return r.id !== detailId; });
-  saveRecords();
-  $('#detail-sheet').classList.add('hidden');
-  renderLedger();
-  renderStats();
-  renderStreakPill();
-  toast('已删除');
+  askConfirm('确定删除这条记录吗？', '删除').then(function (ok) {
+    if (!ok) return;
+    records = records.filter(function (r) { return r.id !== detailId; });
+    saveRecords();
+    $('#detail-sheet').classList.add('hidden');
+    renderLedger();
+    renderStats();
+    renderStreakPill();
+    toast('已删除');
+  });
 });
 $('#detail-close-btn').addEventListener('click', function () {
   $('#detail-sheet').classList.add('hidden');
@@ -616,19 +647,23 @@ $('#export-csv-btn').addEventListener('click', function () {
   toast('已导出 CSV');
 });
 $('#clear-all-btn').addEventListener('click', function () {
-  if (!window.confirm('确定清空全部记录吗？此操作无法恢复，建议先导出备份。')) return;
-  if (!window.confirm('真的全部删除？')) return;
-  records = [];
-  abandons = {};
-  active = null;
-  saveRecords();
-  saveJSON(LS_ABANDONS, abandons);
-  saveActive();
-  renderStake();
-  renderLedger();
-  renderStats();
-  renderStreakPill();
-  toast('已清空');
+  askConfirm('确定清空全部记录吗？此操作无法恢复，建议先导出备份。', '继续').then(function (ok) {
+    if (!ok) return;
+    askConfirm('真的全部删除？', '全部删除').then(function (ok2) {
+      if (!ok2) return;
+      records = [];
+      abandons = {};
+      active = null;
+      saveRecords();
+      saveJSON(LS_ABANDONS, abandons);
+      saveActive();
+      renderStake();
+      renderLedger();
+      renderStats();
+      renderStreakPill();
+      toast('已清空');
+    });
+  });
 });
 
 /* ---------- 统计 ---------- */
@@ -736,9 +771,11 @@ $('#recovery-settle-btn').addEventListener('click', function () {
   openSettle();
 });
 $('#recovery-abandon-btn').addEventListener('click', function () {
-  if (!window.confirm('确定放弃这次质押吗？')) return;
-  $('#recovery-sheet').classList.add('hidden');
-  abandonActive();
+  askConfirm('确定放弃这次质押吗？', '放弃').then(function (ok) {
+    if (!ok) return;
+    $('#recovery-sheet').classList.add('hidden');
+    abandonActive();
+  });
 });
 
 /* ---------- 初始化 ---------- */
